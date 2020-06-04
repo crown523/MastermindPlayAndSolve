@@ -1,28 +1,42 @@
+/*
+* Mastermind Solver
+* Author: Kyle Liang
+* Version: 1.0.1
+*/
+
 #include <iostream>
 #include <vector>
 #include <map>
 
 using namespace std;
 
-static vector<int> possibilities;
-static vector<int> all_codes;
+static const int NUM_DIGITS = 4;
+static const int NUM_COLORS = 6;
+static int comparisons = 0;
+static vector<vector<int>> possible_solns;
+static vector<vector<int>> all_codes;
 
-vector<int> generatePossibilities() {
-    vector<int> gen;
-    for (int i = 1; i < 7; i++) {
-        for (int j = 1; j < 7; j++) {
-            for (int k = 1; k < 7; k++) {
-                for (int l = 1; l < 7; l++) {
-                    int num = 1000 * i + 100 * j + 10 * k + l;
-                    gen.push_back(num);
+void create_sets() {
+    //generate all 1296 codes
+    vector<int> num;
+    for (int i = 1; i <= NUM_COLORS; i++) {
+        for (int j = 1; j <= NUM_COLORS; j++) {
+            for (int k = 1; k <= NUM_COLORS; k++) {
+                for (int l = 1; l <= NUM_COLORS; l++) {
+                    num.push_back(i);
+                    num.push_back(j);
+                    num.push_back(k);
+                    num.push_back(l);
+                    possible_solns.push_back(num);
+                    all_codes.push_back(num);
+                    num.clear();
                 }              
             }
         }
     }
-    return gen;
 }
 
-void remove_code(vector<int> &set, int currentCode) {
+void remove_code(vector<vector<int>> &set, vector<int> currentCode) {
     int index;
     for (auto it = set.begin(); it != set.end(); it++) {
         index = distance(set.begin(), it);
@@ -37,20 +51,19 @@ void remove_code(vector<int> &set, int currentCode) {
 string check_code(vector<int> cur_guess, vector<int> variable_guess) {
     string gen_hint = "";
 
-    //reds
-    for (int j = 0; j < 4; j++) {
-        //cout << cur_guess[j] << variable_guess[j] << endl;
-        if (cur_guess[j] == variable_guess[j]) {
+    //check for reds
+    for (int i = 0; i < NUM_DIGITS; i++) {
+        if (cur_guess[i] == variable_guess[i]) {
             gen_hint.append("r");
-            cur_guess[j] *= -1;
-            variable_guess[j] *= -1;
+            cur_guess[i] *= -1;
+            variable_guess[i] *= -1;
         }
     }
 
-    //whites
-    for (int j = 0; j < 4; j++) {
-        if (cur_guess[j] > 0) {
-            vector<int>::iterator itr = find(variable_guess.begin(), variable_guess.end(), cur_guess[j]);
+    //check for whites
+    for (int i = 0; i < NUM_DIGITS; i++) {
+        if (cur_guess[i] > 0) {
+            vector<int>::iterator itr = find(variable_guess.begin(), variable_guess.end(), cur_guess[i]);
             if (itr != variable_guess.end()) {
                 int index = distance(variable_guess.begin(), itr);
                 gen_hint.append("w");
@@ -59,103 +72,53 @@ string check_code(vector<int> cur_guess, vector<int> variable_guess) {
         }
     }
 
+    //no hint pegs
     if (gen_hint == "") {
         gen_hint = "0";
     }
 
-    //cout << gen_hint << endl;
-
+    comparisons++;
     return gen_hint;
 }
 
-vector<int> trim_set(vector<int> possibilities, int guess, string hint) {
-    vector<int> edited = possibilities;
+void trim_set(vector<int> cur_guess, string hint) {
     //for every element in edited, compare with the guess
-
-    string gen_hint;
-
-    int counter = 0;
-    int c2 = 0;
+    //if it doesn't generate the same code, delete it
 
     int index;
-    vector<int>::iterator it = edited.begin();
-    vector<int> cur_guess;
+    auto it = possible_solns.begin();
+    string gen_hint;
 
-    cout << guess << endl;
+    while (it != possible_solns.end()) {
+        index = distance(possible_solns.begin(), it);
 
-    while (it != edited.end()) {
-        index = distance(edited.begin(), it);
-
-        cur_guess.clear();
-
-        int temp1 = guess;
-        for (int i = 0; i < 4; i++) {
-            cur_guess.insert(cur_guess.begin(), temp1 % 10);
-            temp1 /= 10;
-        }
-
-        cout << cur_guess[0] << cur_guess[1] << cur_guess[2] << cur_guess[3] << endl;
-
-        //make vector
-        int temp = edited[index];
-        vector<int> variable_guess;
-        for (int k = 0; k < 4; k++) {
-            variable_guess.insert(variable_guess.begin(), temp % 10);
-            temp /= 10;
-        }
-
-        cout << variable_guess[0] << variable_guess[1] << variable_guess[2] << variable_guess[3] << endl;
-
-        gen_hint = check_code(cur_guess, variable_guess);
-
-        vector<int> v1{6,3,3,1};
-        if (variable_guess == v1) {
-            cout << "here!" << endl;
-            cout << hint << " | " << gen_hint << endl;
-        }
+        gen_hint = check_code(cur_guess, possible_solns[index]);
 
         if (hint != gen_hint) {
-            counter++;
-            it = edited.erase(edited.begin() + index);
-            //cout << "removed!" << endl;
+            it = possible_solns.erase(possible_solns.begin() + index);
         } else {
             it++;
         }
-
-        c2++;
-        //cout << "pass: " << c2 << endl;
     }
-
-    //cout << "num found: " << counter << endl;
-    cout << "remaining possible solns: " << edited.size() << endl;
-    //cout << "first ele" << *edited.begin() << endl;
-    return edited;
 }
 
-vector<int> min_max() {
-    vector<int> optimal_guesses;
+vector<vector<int>> min_max() {
+    vector<vector<int>> optimal_guesses;
     map<string, int> hit_count;
-    map<int, int> guess_scores;
+    map<vector<int>, int> guess_scores;
 
+    //for each unguessed code
     for (int i = 0; i < all_codes.size(); ++i) {
-        vector<int> cur_guess;
-        int temp1 = all_codes[i];
-        for (int i = 0; i < 4; i++) {
-            cur_guess.insert(cur_guess.begin(), temp1 % 10);
-            temp1 /= 10;
-        }
+        vector<int> cur_guess = all_codes[i];
 
-        for (int j = 0; j < possibilities.size(); ++j) {
+        //compare it to all possible solutions and record the hint pegs
+        //each combination of hint pegs will have a corresponding number
+        //stored in a map
+        
+        for (int j = 0; j < possible_solns.size(); ++j) {
+            vector<int> variable_guess = possible_solns[j];
 
-            //make vector
-            int temp = possibilities[j];
-            vector<int> variable_guess;
-            for (int k = 0; k < 4; k++) {
-                variable_guess.insert(variable_guess.begin(), temp % 10);
-                temp /= 10;
-            }
-
-            string hint_pegs = check_code(cur_guess, variable_guess);
+            string hint_pegs = check_code(all_codes[i], possible_solns[j]);
             if (hit_count.count(hint_pegs) > 0) {
                 hit_count.at(hint_pegs)++;
             } else {
@@ -164,6 +127,9 @@ vector<int> min_max() {
         }
 
         //get minimum elims
+        //go through the hit_count map
+        //the largest number results in the smallest possible number of eliminations
+        //store these in a second map
         int max = 0;
 
         for (auto entry : hit_count) {
@@ -176,6 +142,9 @@ vector<int> min_max() {
         hit_count.clear();
     }
 
+    //get maximum of mins
+    //go through guess_scores map
+    //find highest value
     int min = INT_MAX;
 
     for (auto entry : guess_scores) {
@@ -184,23 +153,30 @@ vector<int> min_max() {
         }
     }
 
+    //for every code with the highest value
+    //store in the optimal_guess vector
     for (auto entry : guess_scores) {
         if (entry.second == min) {
             optimal_guesses.push_back(entry.first);
         }
     }
 
+    //return the list of optimal guesses
     return optimal_guesses;
 }
 
-int generateGuess(vector<int> possibilities, vector<int> all_codes) {
-    vector<int> optimal_guesses = min_max();
-    int guess;
+vector<int> generate_guess(vector<vector<int>> possible_solns, vector<vector<int>> all_codes) {
+    //get optimal guesses
+    vector<vector<int>> optimal_guesses = min_max();
+    vector<int> guess;
+
+    //play a guess from potential solution set if possible
     for (int i = 0; i < optimal_guesses.size(); ++i) {
-        if (find(possibilities.begin(), possibilities.end(), optimal_guesses[i]) != possibilities.end()) {
+        if (find(possible_solns.begin(), possible_solns.end(), optimal_guesses[i]) != possible_solns.end()) {
             return optimal_guesses[i];
         }
     }
+
     for (int i = 0; i < optimal_guesses.size(); ++i) {
         if (find(all_codes.begin(), all_codes.end(), optimal_guesses[i]) != all_codes.end()) {
             return optimal_guesses[i];
@@ -209,19 +185,28 @@ int generateGuess(vector<int> possibilities, vector<int> all_codes) {
     return guess;
 }
 
+string print_guess(vector<int> guess) {
+    //convert vector into string
+    string result = "";
+    for (int i = 0; i < NUM_DIGITS; i++) {
+        result.append(to_string(guess[i]));
+    }
+    return result;
+}
+
 int main() {
+    //initializations
     int turns = 1;
-
-    possibilities = generatePossibilities();
-    all_codes = generatePossibilities();
-    cout << "i am guess number man" << endl;
-    
-    int guess = 1122;
+    vector<int> guess {1,1,2,2};
     bool won = false;
+    create_sets();
 
-    cout << "Turn: " << turns << endl << "Guess: " << guess << endl;
+    cout << "Mastermind Solver" << endl;
+    cout << "Turn: " << turns << endl << "Guess: " << print_guess(guess) << endl;
     
+    //game loop
     while (!won) {
+        //check if hint input format is valid
         string hint;
         bool valid = true;
         do {
@@ -237,27 +222,33 @@ int main() {
                 }
             }
         } while (!valid);
+
+        //if 4 colored pegs, game is won
         if (hint == "rrrr") {
             won = true;
             break;
         }
 
-        remove_code(possibilities, guess);
+        //remove guess from possible solutions and future guesses
+        remove_code(possible_solns, guess);
         remove_code(all_codes, guess);
 
-        possibilities = trim_set(possibilities, guess, hint);
+        //remove from possible solutions any codes that do not match known hints
+        trim_set(guess, hint);
 
-        for (auto i = possibilities.begin(); i != possibilities.end(); i++) {
-            cout << *i << endl;
-        }
+        //pick the next guess
+        guess = generate_guess(possible_solns, all_codes);
 
-        guess = generateGuess(possibilities, all_codes);
+        //play the guess
         turns++;
-        cout << "Turn: " << turns << endl << "Guess: " << guess << endl;
+        cout << "Turn: " << turns << endl << "Guess: " << print_guess(guess) << endl;
 
     }
-    cout << "ggs, turns taken: " << turns << endl;
-    //bool contained = possibilities.find(element) != possibilities.end();
+    cout << "ggs! Stats: " << endl;
+    cout << "guesses used: " << turns << endl;
+    cout << "last guess chosen from " << possible_solns.size() << " possibilites" << endl;
+    cout << "comparisons made: " << comparisons << endl;
+
     return 0;
 }
 
