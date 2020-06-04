@@ -1,0 +1,1 @@
+An Implementation of Donald Knuth's 5 Step Algorithm for the Game of Mastermind
