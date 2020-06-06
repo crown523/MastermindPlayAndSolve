@@ -245,14 +245,14 @@ int main() {
 
             cout << "Playing Mastermind" << endl;
             cout << "Select Difficulty: " << endl;
-            string diffInput;
+            int diffInput;
             do {
                 cout << "Input '1' for Easy (10 guesses)," << "'2' for medium (8 guesses)," 
                     << "'3' for hard (6 guesses)," << "'4' for insane (5 guesses)." << endl;
                 cin >> diffInput;
-            } while (diffInput != "1" && diffInput != "2" && diffInput != "3" && diffInput != "4");
+            } while (diffInput != 1 && diffInput != 2 && diffInput != 3 && diffInput != 4);
 
-            switch (stoi(diffInput)) {
+            switch (diffInput) {
                 case 1:
                     diff_setting = 10;
                     break;
