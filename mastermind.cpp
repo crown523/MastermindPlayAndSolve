@@ -1,7 +1,7 @@
 /*
-* Mastermind Solver
+* Mastermind Application with Gameplay and Solver
 * Author: Kyle Liang
-* Version: 1.0.1
+* Version: 2.0.1
 */
 
 #include <iostream>
