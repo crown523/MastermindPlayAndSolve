@@ -7,14 +7,21 @@
 #include <iostream>
 #include <vector>
 #include <map>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
 
 using namespace std;
 
 static const int NUM_DIGITS = 4;
 static const int NUM_COLORS = 6;
-static int comparisons = 0;
+static int diff_setting;
+static int comparisons;
+static int turn_number;
 static vector<vector<int>> possible_solns;
 static vector<vector<int>> all_codes;
+
+//universal methods
 
 void create_sets() {
     //generate all 1296 codes
@@ -48,26 +55,26 @@ void remove_code(vector<vector<int>> &set, vector<int> currentCode) {
     }
 }
 
-string check_code(vector<int> cur_guess, vector<int> variable_guess) {
+string check_code(vector<int> guess, vector<int> code) {
     string gen_hint = "";
 
     //check for reds
     for (int i = 0; i < NUM_DIGITS; i++) {
-        if (cur_guess[i] == variable_guess[i]) {
+        if (guess[i] == code[i]) {
             gen_hint.append("r");
-            cur_guess[i] *= -1;
-            variable_guess[i] *= -1;
+            guess[i] *= -1;
+            code[i] *= -1;
         }
     }
 
     //check for whites
     for (int i = 0; i < NUM_DIGITS; i++) {
-        if (cur_guess[i] > 0) {
-            vector<int>::iterator itr = find(variable_guess.begin(), variable_guess.end(), cur_guess[i]);
-            if (itr != variable_guess.end()) {
-                int index = distance(variable_guess.begin(), itr);
+        if (guess[i] > 0) {
+            vector<int>::iterator itr = find(code.begin(), code.end(), guess[i]);
+            if (itr != code.end()) {
+                int index = distance(code.begin(), itr);
                 gen_hint.append("w");
-                variable_guess[index] *= -1;
+                code[index] *= -1;
             }
         }
     }
@@ -80,6 +87,17 @@ string check_code(vector<int> cur_guess, vector<int> variable_guess) {
     comparisons++;
     return gen_hint;
 }
+
+string print_vector(vector<int> guess) {
+    //convert vector into string
+    string result = "";
+    for (int i = 0; i < NUM_DIGITS; i++) {
+        result.append(to_string(guess[i]));
+    }
+    return result;
+}
+
+//methods for algorithmic solver only
 
 void trim_set(vector<int> cur_guess, string hint) {
     //for every element in edited, compare with the guess
@@ -185,70 +203,184 @@ vector<int> generate_guess(vector<vector<int>> possible_solns, vector<vector<int
     return guess;
 }
 
-string print_guess(vector<int> guess) {
-    //convert vector into string
-    string result = "";
+//methods for gameplay
+
+vector<int> gen_rand_code() {
+    vector<int> code;
+    srand(time(NULL));
     for (int i = 0; i < NUM_DIGITS; i++) {
-        result.append(to_string(guess[i]));
+        code.push_back(rand() % NUM_COLORS + 1);
     }
-    return result;
+    return code;
 }
 
 int main() {
-    //initializations
-    int turns = 1;
-    vector<int> guess {1,1,2,2};
-    bool won = false;
-    create_sets();
+    bool done = false;
+    string choice;
+    string cont_choice;
 
-    cout << "Mastermind Solver" << endl;
-    cout << "Turn: " << turns << endl << "Guess: " << print_guess(guess) << endl;
-    
-    //game loop
-    while (!won) {
-        //check if hint input format is valid
-        string hint;
-        bool valid = true;
-        do {
-            valid = true;
-            cout << "enter hint pegs" << endl;
-            cin >> hint;
-            if (hint != "0") {
-                for (int i = 0; i < hint.length(); i++) {
-                    if (hint[i] != 'r' && hint[i] != 'w') {
-                        valid = false;
-                        break;
-                    }
-                }
-            }
-        } while (!valid);
-
-        //if 4 colored pegs, game is won
-        if (hint == "rrrr") {
-            won = true;
-            break;
+    //program loop
+    while (!done) {
+        if (choice == "") {
+            //choose mode
+            cout << "Welcome to Mastermind." << endl;         
+            do {
+                cout << "Input 'g' for gameplay and 's' for solver, or 'exit' to terminate." << endl;
+                cin >> choice;
+            } while (choice != "g" && choice != "s" && choice != "exit");
+        }
+        
+        if (choice == "g") {
+            done = true;
         }
 
-        //remove guess from possible solutions and future guesses
-        remove_code(possible_solns, guess);
-        remove_code(all_codes, guess);
+        //gameplay
+        if (choice == "g") {
+            //inits
+            comparisons = 0;
+            turn_number = 1;
+            bool won = false;
+            vector<int> guess;
+            create_sets();
 
-        //remove from possible solutions any codes that do not match known hints
-        trim_set(guess, hint);
+            cout << "Playing Mastermind" << endl;
+            cout << "Select Difficulty: " << endl;
+            string diffInput;
+            do {
+                cout << "Input '1' for Easy (10 guesses)," << "'2' for medium (8 guesses)," 
+                    << "'3' for hard (6 guesses)," << "'4' for insane (5 guesses)." << endl;
+                cin >> diffInput;
+            } while (diffInput != "1" && diffInput != "2" && diffInput != "3" && diffInput != "4");
 
-        //pick the next guess
-        guess = generate_guess(possible_solns, all_codes);
+            switch (stoi(diffInput)) {
+                case 1:
+                    diff_setting = 10;
+                    break;
+                case 2:
+                    diff_setting = 8;
+                    break;
+                case 3:
+                    diff_setting = 6;
+                    break;
+                case 4:
+                    diff_setting = 5;
+                    break;
+            }
 
-        //play the guess
-        turns++;
-        cout << "Turn: " << turns << endl << "Guess: " << print_guess(guess) << endl;
+            vector<int> code = gen_rand_code();
 
+            cout << print_vector(code) << endl;
+            cout << diff_setting << endl;
+
+            cout << "Turn: " << turn_number << endl;
+            while (!won && turn_number <= diff_setting) {
+                int guess_as_int;
+                do {
+                    guess.clear();
+                    cout << "Input your guess" << endl;
+                    cin >> guess_as_int;
+                    while (guess_as_int != 0) {
+                        guess.insert(guess.begin(), guess_as_int % 10);
+                        guess_as_int /= 10;
+                    }
+                    cout << print_vector(guess) << endl;
+                } while (find(all_codes.begin(), all_codes.end(), guess) == all_codes.end());
+                //TODO: implement check_valid_code() that uses binary search
+                string hint_pegs = check_code(guess, code);
+                if (hint_pegs == "rrrr") {
+                    won = true;
+                } else {
+                    cout << "Hint Pegs: " << hint_pegs << endl;
+                }
+                turn_number++;
+            }
+            if (won) {
+                cout << "Correct! The code was " << print_vector(code) << ". You got it in " << turn_number - 1 << " guess(es)." << endl;
+            } else {
+                cout << "Out of guesses. The code was " << print_vector(code) << endl;
+            }
+            
+            cout << "Next actions:" << endl;
+            do {
+                cout << "input 'g' to play again, 's' to switch to solver, or 'exit' to terminate" << endl;
+                cin >> cont_choice;
+            } while (cont_choice != "g" && cont_choice != "s" && cont_choice != "exit");
+            if (cont_choice == "s") {
+                choice = cont_choice;
+            } else if (cont_choice == "exit") {
+                done = true;
+            }
+        }
+
+        //solver
+        if (choice == "s") {
+            //initializations
+            comparisons = 0;
+            turn_number = 1;
+            vector<int> guess {1,1,2,2};
+            bool won = false;
+            create_sets();
+
+            cout << "Mastermind Solver" << endl;
+            cout << "Turn: " << turn_number << endl << "Guess: " << print_vector(guess) << endl;
+            
+            //game loop
+            while (!won) {
+                //check if hint input format is valid
+                string hint;
+                bool valid = true;
+                do {
+                    valid = true;
+                    cout << "enter hint pegs" << endl;
+                    cin >> hint;
+                    if (hint != "0") {
+                        for (int i = 0; i < hint.length(); i++) {
+                            if (hint[i] != 'r' && hint[i] != 'w') {
+                                valid = false;
+                                break;
+                            }
+                        }
+                    }
+                } while (!valid);
+
+                //if 4 colored pegs, game is won
+                if (hint == "rrrr") {
+                    won = true;
+                    break;
+                }
+
+                //remove guess from possible solutions and future guesses
+                remove_code(possible_solns, guess);
+                remove_code(all_codes, guess);
+
+                //remove from possible solutions any codes that do not match known hints
+                trim_set(guess, hint);
+
+                //pick the next guess
+                guess = generate_guess(possible_solns, all_codes);
+
+                //play the guess
+                turn_number++;
+                cout << "Turn: " << turn_number << endl << "Guess: " << print_vector(guess) << endl;
+
+            }
+            cout << "ggs! Stats: " << endl;
+            cout << "guesses used: " << turn_number << endl;
+            cout << "last guess chosen from " << possible_solns.size() << " possibilites" << endl;
+            cout << "comparisons made: " << comparisons << endl;
+
+            cout << "Next actions:" << endl;
+            do {
+                cout << "input 's' to solve again, 'g' to switch to gameplay, or 'exit' to terminate" << endl;
+                cin >> cont_choice;
+            } while (cont_choice != "s" && cont_choice != "g" && cont_choice != "exit");
+            if (cont_choice == "g") {
+                choice = cont_choice;
+            } else if (cont_choice == "exit") {
+                done = true;
+            }
+        }
     }
-    cout << "ggs! Stats: " << endl;
-    cout << "guesses used: " << turns << endl;
-    cout << "last guess chosen from " << possible_solns.size() << " possibilites" << endl;
-    cout << "comparisons made: " << comparisons << endl;
-
     return 0;
 }
 
