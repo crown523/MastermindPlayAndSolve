@@ -269,9 +269,6 @@ int main() {
 
             vector<int> code = gen_rand_code();
 
-            cout << print_vector(code) << endl;
-            cout << diff_setting << endl;
-
             cout << "Turn: " << turn_number << endl;
             while (!won && turn_number <= diff_setting) {
                 int guess_as_int;
@@ -283,7 +280,6 @@ int main() {
                         guess.insert(guess.begin(), guess_as_int % 10);
                         guess_as_int /= 10;
                     }
-                    cout << print_vector(guess) << endl;
                 } while (find(all_codes.begin(), all_codes.end(), guess) == all_codes.end());
                 //TODO: implement check_valid_code() that uses binary search
                 string hint_pegs = check_code(guess, code);
