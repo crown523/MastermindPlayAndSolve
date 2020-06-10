@@ -273,8 +273,8 @@ int main() {
 
             vector<int> code = gen_rand_code();
 
-            cout << "Turn: " << turn_number << endl;
             while (!won && turn_number <= diff_setting) {
+                cout << "Turn: " << turn_number << endl;
                 int guess_as_int;
                 do {
                     guess.clear();
