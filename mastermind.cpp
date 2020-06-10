@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
+#include <climits>
 
 using namespace std;
 
@@ -249,7 +250,10 @@ int main() {
             do {
                 cout << "Input '1' for Easy (10 guesses)," << "'2' for medium (8 guesses)," 
                     << "'3' for hard (6 guesses)," << "'4' for insane (5 guesses)." << endl;
-                cin >> diffInput;
+                if (!(cin >> diffInput)) {
+                    cin.clear();
+                    cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                };
             } while (diffInput != 1 && diffInput != 2 && diffInput != 3 && diffInput != 4);
 
             switch (diffInput) {
@@ -275,7 +279,10 @@ int main() {
                 do {
                     guess.clear();
                     cout << "Input your guess" << endl;
-                    cin >> guess_as_int;
+                    if (!(cin >> guess_as_int)) {
+                        cin.clear();
+                        cin.ignore(numeric_limits<streamsize>::max(), '\n');
+                    };
                     while (guess_as_int != 0) {
                         guess.insert(guess.begin(), guess_as_int % 10);
                         guess_as_int /= 10;
