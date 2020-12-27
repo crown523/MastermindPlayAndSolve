@@ -383,6 +383,10 @@ int main() {
                 done = true;
             }
         }
+
+        if (choice == "exit") {
+            done = true;
+        }
     }
     return 0;
 }
